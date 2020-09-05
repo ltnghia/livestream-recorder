@@ -77,7 +77,7 @@ def record(param):
 
 
 def create_json(json_file='urls.json'):
-    data = {'info': [], 'current_stream': 0, 'max_streams': 3}
+    data = {'info': [], 'current_id': 0, 'max_threads': 3}
     for i in range(10):
         data['info'].append({'id': i,
                              'url': "https://www.youtube.com/embed/jEhIe2SDKso",
@@ -90,23 +90,23 @@ def create_json(json_file='urls.json'):
 
 def get_params(json_file='urls.json'):
     data = load_json(json_file)
-    current_stream = data['current_stream']
-    max_streams = data['max_streams']
-    next_stream = min(current_stream + max_streams, len(data['info']))
+    current_id = data['current_id']
+    max_threads = data['max_threads']
+    next_id = min(current_id + max_threads, len(data['info']))
     params = []
-    for i in range(current_stream, next_stream):
+    for i in range(current_id, next_id):
         params.append(data['info'][i])
-    data['current_stream'] = 0 if next_stream == len(data['info']) else next_stream
+    data['current_id'] = 0 if next_id == len(data['info']) else next_id
     write_json(data, json_file)
-    return params, current_stream
+    return params, current_id
 
 
 def run(json_file='urls.json'):
     if os.path.exists(json_file):
-        params, current_stream = get_params(json_file)
+        params, current_id = get_params(json_file)
         if params:
             current_time = get_current_time(format=True)
-            print('Downloading {} streams from id={}, at {}'.format(len(params), current_stream, current_time))
+            print('Downloading {} streams from id={}, at {}'.format(len(params), current_id, current_time))
             # for param in params:
             #     record(param)
             pool = Pool()
