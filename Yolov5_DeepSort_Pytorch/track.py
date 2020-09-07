@@ -109,8 +109,9 @@ def detect(opt, save_img=False):
         cudnn.benchmark = True  # set True to speed up constant image size inference
         dataset = LoadStreams(source, img_size=imgsz)
     else:
-        view_img = True
+        view_img = False
         save_img = True
+        save_txt = True
         dataset = LoadImages(source, img_size=imgsz)
 
     # Get names and colors
@@ -121,7 +122,12 @@ def detect(opt, save_img=False):
     t0 = time.time()
     img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
     _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+    
+    frame_id = 0
+    track_pedes = []
+
     for path, img, im0s, vid_cap in dataset:
+        frame_id = frame_id + 1
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -150,6 +156,8 @@ def detect(opt, save_img=False):
 
             save_path = str(Path(out) / Path(p).name)
             txt_path = str(Path(out) / Path(p).stem) + ('_%g' % dataset.frame if dataset.mode == 'video' else '')
+            
+            
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  #  normalization gain whwh
             if det is not None and len(det):
@@ -184,6 +192,8 @@ def detect(opt, save_img=False):
                     bbox_xyxy = outputs[:, :4]
                     identities = outputs[:, -1]
                     ori_im = draw_boxes(im0, bbox_xyxy, identities)
+                    for xmin, ymin, xmax, ymax, track_id in outputs:
+                      track_pedes.append((frame_id, 0, track_id, xmin, ymin, xmax, ymax))
 
             # Print time (inference + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))
@@ -210,6 +220,13 @@ def detect(opt, save_img=False):
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*opt.fourcc), fps, (w, h))
                     vid_writer.write(im0)
 
+            result_filename = str(Path(out) / Path(p).stem) +'.txt'
+            print(result_filename)
+            if save_txt:
+              with open(result_filename, 'w') as result_file:
+                for frame_id, class_id, track_id, xmin, ymin, xmax, ymax in track_pedes:
+                  result_file.write('{} {} {} {} {} {} {}\n'.format(frame_id, class_id, track_id, xmin, ymin, xmax, ymax))
+
     if save_txt or save_img:
         print('Results saved to %s' % os.getcwd() + os.sep + out)
         if platform == 'darwin':  # MacOS
@@ -220,11 +237,11 @@ def detect(opt, save_img=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='yolov5/weights/yolov5m.pt', help='model.pt path')
+    parser.add_argument('--weights', type=str, default='yolov5/weights/yolov5x.pt', help='model.pt path')
     parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='inference/output', help='output folder')  # output folder
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.4, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
