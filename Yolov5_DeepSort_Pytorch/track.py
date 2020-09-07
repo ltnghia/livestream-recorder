@@ -220,12 +220,12 @@ def detect(opt, save_img=False):
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*opt.fourcc), fps, (w, h))
                     vid_writer.write(im0)
 
-            result_filename = str(Path(out) / Path(p).stem) +'.txt'
-            print(result_filename)
-            if save_txt:
-              with open(result_filename, 'w') as result_file:
-                for frame_id, class_id, track_id, xmin, ymin, xmax, ymax in track_pedes:
-                  result_file.write('{} {} {} {} {} {} {}\n'.format(frame_id, class_id, track_id, xmin, ymin, xmax, ymax))
+    result_filename = str(Path(out) / Path(p).stem) +'.txt'
+    print(result_filename)
+    if save_txt:
+      with open(result_filename, 'w') as result_file:
+        for frame_id, class_id, track_id, xmin, ymin, xmax, ymax in track_pedes:
+          result_file.write('{} {} {} {} {} {} {}\n'.format(frame_id, class_id, track_id, xmin, ymin, xmax, ymax))
 
     if save_txt or save_img:
         print('Results saved to %s' % os.getcwd() + os.sep + out)
